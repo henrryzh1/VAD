@@ -1,0 +1,35 @@
+import torch
+import torch.nn as nn
+class CAD(nn.Module):
+    def __init__(self,len_feature,num_classes):
+        super(CAD,self).__init__()
+        self.len_feature=len_feature
+        self.num_classes=num_classes
+        self.softmax=nn.Softmax(dim=1)
+        self.attention=nn.Sequential(
+            nn.Linear(self.len_feature,256),
+            nn.ReLU(),
+            nn.Dropout(p=0.6),
+            nn.Linear(256,1),
+            nn.Sigmoid()
+        )
+        self.classifier=nn.Sequential(
+            nn.Linear(self.len_feature,512),
+            nn.ReLU(),
+            nn.Dropout(p=0.6),
+            nn.Linear(512,128),
+            nn.ReLU(),
+            nn.Dropout(p=0.6),
+            nn.Linear(128,self.num_classes)
+        )
+    def forward(self,x):
+        att=self.attention(x)
+        predict=self.classifier(x)
+        predict=torch.bmm(att.permute(0,2,1),predict).permute(0,2,1)
+        pred=self.softmax(predict)
+        return pred,att
+if __name__ == "__main__":
+    model=CAD(1024,14)
+    A=torch.ones(3,40,1024)
+    pre,att=model.forward(A)
+    print(pre.size())
